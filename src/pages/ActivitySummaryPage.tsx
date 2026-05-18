@@ -19,7 +19,7 @@ type SummaryState = {
   samples?: SensorData[];
   summary?: Partial<ActivitySummary>;
   mode?: RunningMode;
-  source?: 'Gps' | 'Estimated';
+  source?: 'Gps' | 'Estimated' | 'Hybrid' | 'NoSpeed';
 };
 
 type ActivitySummary = {
@@ -35,7 +35,7 @@ type ActivitySummary = {
   decouplingPeak: number;
   fatigueFinal: string;
   mode: 'INDOOR' | 'OUTDOOR';
-  source: 'Gps' | 'Estimated';
+  source: 'Gps' | 'Estimated' | 'Hybrid' | 'NoSpeed';
 };
 
 type ChartMetricKey =

@@ -14,7 +14,7 @@ export type DeviceConfigStatus =
   | 'RUNNING';
 
 export type DeviceMode = 'INDOOR' | 'OUTDOOR';
-export type DeviceSource = 'Gps' | 'Estimated';
+export type DeviceSource = 'Gps' | 'Estimated' | 'Hybrid' | 'NoSpeed';
 export type DeviceGpsStatus = 'LOCKED' | 'NOFIX';
 
 // ============================
@@ -52,7 +52,7 @@ export interface SensorData {
   rawGpsStatus?: DeviceGpsStatus;
 
   // source info
-  speedSource?: 'estimated' | 'gps';
+  speedSource?: 'estimated' | 'gps' | 'hybrid' | 'nospeed';
   mode?: DeviceMode;
   source?: DeviceSource;
 

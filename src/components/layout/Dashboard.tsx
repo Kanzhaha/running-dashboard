@@ -28,6 +28,7 @@ import {
   RunningMode,
   GPSStatus,
   DeviceConfigStatus,
+  DeviceSource,
   DeviceGpsStatus
 } from '../../types';
 import { useMqtt } from '../../hooks/useMqtt';
@@ -423,7 +424,10 @@ export const Dashboard: React.FC = () => {
     decouplingPeak: decouplingPeak || 0,
     fatigueFinal: latestSample?.fatigueStatus || 'NORMAL',
     mode: userProfile?.mode === 'indoor' ? 'INDOOR' : 'OUTDOOR',
-    source: userProfile?.mode === 'indoor' ? 'Estimated' : 'Gps'
+    source:
+      latestSample?.source ||
+      (messages['wearable/source'] as DeviceSource | undefined) ||
+      (userProfile?.mode === 'indoor' ? 'Estimated' : 'Gps')
   };
 
   if (currentSessionId) {
@@ -453,7 +457,10 @@ export const Dashboard: React.FC = () => {
       samples: samplesToSummarize,
       summary: summaryPayload,
       mode: userProfile?.mode || 'outdoor',
-      source: userProfile?.mode === 'indoor' ? 'Estimated' : 'Gps'
+      source:
+        latestSample?.source ||
+        (messages['wearable/source'] as DeviceSource | undefined) ||
+        (userProfile?.mode === 'indoor' ? 'Estimated' : 'Gps')
     }
   });
 };
@@ -566,6 +573,7 @@ export const Dashboard: React.FC = () => {
 
     const rawFatigueStatus = messages['wearable/fatigue_status'];
     const rawGpsStatus = messages['wearable/gps_status'] as DeviceGpsStatus | undefined;
+    const rawSource = messages['wearable/source'] as DeviceSource | undefined;
 
     const hasAnyLiveMetric =
       hasPayload(messages['wearable/heartrate']) ||
@@ -604,7 +612,14 @@ export const Dashboard: React.FC = () => {
           : undefined,
       gpsStatus: mapDeviceGpsStatusToUi(rawGpsStatus, selectedMode),
       rawGpsStatus,
-      speedSource: selectedMode === 'indoor' ? 'estimated' : 'gps',
+      speedSource:
+        rawSource === 'Hybrid'
+          ? 'hybrid'
+          : rawSource === 'Estimated'
+          ? 'estimated'
+          : rawSource === 'NoSpeed'
+          ? 'nospeed'
+          : 'gps',
       efficiencyIndex,
       decoupling,
       fatigueStatus: rawFatigueStatus,
@@ -613,7 +628,7 @@ export const Dashboard: React.FC = () => {
       powerAcc,
       powerVert,
       mode: selectedMode === 'indoor' ? 'INDOOR' : 'OUTDOOR',
-      source: selectedMode === 'indoor' ? 'Estimated' : 'Gps'
+      source: rawSource || (selectedMode === 'indoor' ? 'Estimated' : 'Gps')
     };
 
     setLatest(nextData);
@@ -668,7 +683,10 @@ export const Dashboard: React.FC = () => {
 
   const selectedMode: RunningMode = userProfile?.mode || 'outdoor';
   const modeLabel = selectedMode === 'indoor' ? 'INDOOR' : 'OUTDOOR';
-  const sourceLabel = selectedMode === 'indoor' ? 'Estimated' : 'Gps';
+  const sourceLabel =
+    latest?.source ||
+    (messages['wearable/source'] as DeviceSource | undefined) ||
+    (selectedMode === 'indoor' ? 'Estimated' : 'Gps');
 
   const heartRateZone = latest ? getHeartRateZone(latest.heartRate, userProfile?.gender) : '--';
   const gpsPill = getGpsPillState(latest?.gpsStatus, selectedMode);
