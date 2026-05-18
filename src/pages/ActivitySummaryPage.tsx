@@ -56,14 +56,22 @@ const formatDuration = (seconds: number) => {
     .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const average = (values: number[]) => {
-  const valid = values.filter((v) => Number.isFinite(v));
+const getFiniteValues = (values: number[]) => {
+  return values.filter((v) => Number.isFinite(v));
+};
+
+const getPositiveValues = (values: number[]) => {
+  return values.filter((v) => Number.isFinite(v) && v > 0);
+};
+
+const averagePositive = (values: number[]) => {
+  const valid = getPositiveValues(values);
   if (!valid.length) return 0;
   return valid.reduce((sum, v) => sum + v, 0) / valid.length;
 };
 
 const maxValue = (values: number[]) => {
-  const valid = values.filter((v) => Number.isFinite(v));
+  const valid = getFiniteValues(values);
   if (!valid.length) return 0;
   return Math.max(...valid);
 };
@@ -102,9 +110,12 @@ const LineMiniChart: React.FC<{
   const chart = useMemo(() => {
     if (!data.length) return null;
 
-    const values = data
-      .map((item) => Number(item[dataKey] ?? 0))
-      .filter((v) => Number.isFinite(v));
+    const validData = data.filter((item) => {
+      const value = Number(item[dataKey] ?? 0);
+      return Number.isFinite(value) && value > 0;
+    });
+
+    const values = validData.map((item) => Number(item[dataKey] ?? 0));
 
     if (!values.length) return null;
 
@@ -125,20 +136,19 @@ const LineMiniChart: React.FC<{
 
     const toX = (index: number) =>
       paddingLeft +
-      (index / Math.max(data.length - 1, 1)) * (width - paddingLeft - paddingRight);
+      (index / Math.max(validData.length - 1, 1)) * (width - paddingLeft - paddingRight);
 
     const toY = (value: number) =>
       height -
       paddingBottom -
       ((value - paddedMin) / range) * (height - paddingTop - paddingBottom);
 
-    const points = data.map((item, index) => {
+    const points = validData.map((item, index) => {
       const raw = Number(item[dataKey] ?? 0);
-      const safe = Number.isFinite(raw) ? raw : 0;
-      return `${toX(index)},${toY(safe)}`;
+      return `${toX(index)},${toY(raw)}`;
     });
 
-    const lastValue = getLastFinite(values);
+    const lastValue = values[values.length - 1] ?? 0;
 
     const yTicks = [
       paddedMin,
@@ -149,9 +159,14 @@ const LineMiniChart: React.FC<{
     ];
 
     const durationSec =
-      data.length > 1
-        ? Math.max(0, Math.round((data[data.length - 1].timestamp - data[0].timestamp) / 1000))
-        : data.length;
+      validData.length > 1
+        ? Math.max(
+            0,
+            Math.round(
+              (validData[validData.length - 1].timestamp - validData[0].timestamp) / 1000
+            )
+          )
+        : validData.length;
 
     const xTicks = [
       { label: '0s', value: 0 },
@@ -318,6 +333,23 @@ export const ActivitySummaryPage: React.FC = () => {
 
   const samples = state.samples || [];
 
+  const validSampleCount = useMemo(() => {
+    return samples.filter((s) => {
+      const speed = Number(s.speed || 0);
+      const power = Number(s.runningPower || 0);
+      const cadence = Number(s.cadence || 0);
+
+      return (
+        Number.isFinite(speed) &&
+        Number.isFinite(power) &&
+        Number.isFinite(cadence) &&
+        speed > 0 &&
+        power > 0 &&
+        cadence > 0
+      );
+    }).length;
+  }, [samples]);
+
   const summary = useMemo<ActivitySummary>(() => {
     const durationSec =
       typeof state.summary?.durationSec === 'number'
@@ -339,34 +371,46 @@ export const ActivitySummaryPage: React.FC = () => {
         : 0;
 
     const avgPower =
-      typeof state.summary?.avgPower === 'number'
+      samples.length > 0
+        ? averagePositive(samples.map((s) => Number(s.runningPower || 0)))
+        : typeof state.summary?.avgPower === 'number'
         ? state.summary.avgPower
-        : average(samples.map((s) => Number(s.runningPower || 0)));
+        : 0;
 
     const avgHr =
-      typeof state.summary?.avgHr === 'number'
+      samples.length > 0
+        ? averagePositive(samples.map((s) => Number(s.heartRate || 0)))
+        : typeof state.summary?.avgHr === 'number'
         ? state.summary.avgHr
-        : average(samples.map((s) => Number(s.heartRate || 0)));
+        : 0;
 
     const avgSpeed =
-      typeof state.summary?.avgSpeed === 'number'
+      samples.length > 0
+        ? averagePositive(samples.map((s) => Number(s.speed || 0)))
+        : typeof state.summary?.avgSpeed === 'number'
         ? state.summary.avgSpeed
-        : average(samples.map((s) => Number(s.speed || 0)));
+        : 0;
 
     const avgCadence =
-      typeof state.summary?.avgCadence === 'number'
+      samples.length > 0
+        ? averagePositive(samples.map((s) => Number(s.cadence || 0)))
+        : typeof state.summary?.avgCadence === 'number'
         ? state.summary.avgCadence
-        : average(samples.map((s) => Number(s.cadence || 0)));
+        : 0;
 
     const avgGct =
-      typeof state.summary?.avgGct === 'number'
+      samples.length > 0
+        ? averagePositive(samples.map((s) => Number(s.groundContactTime || 0)))
+        : typeof state.summary?.avgGct === 'number'
         ? state.summary.avgGct
-        : average(samples.map((s) => Number(s.groundContactTime || 0)));
+        : 0;
 
     const avgVo =
-      typeof state.summary?.avgVo === 'number'
+      samples.length > 0
+        ? averagePositive(samples.map((s) => Number(s.verticalOscillation || 0)))
+        : typeof state.summary?.avgVo === 'number'
         ? state.summary.avgVo
-        : average(samples.map((s) => Number(s.verticalOscillation || 0)));
+        : 0;
 
     const decouplingValues = samples.map((s) => Number(s.decoupling || 0));
     const decouplingFinal =
@@ -474,8 +518,12 @@ export const ActivitySummaryPage: React.FC = () => {
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">Total Samples</div>
-            <div className="text-white text-3xl font-bold font-mono-nums">{samples.length}</div>
+            <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">
+              Valid / Total Samples
+            </div>
+            <div className="text-white text-3xl font-bold font-mono-nums">
+              {validSampleCount} / {samples.length}
+            </div>
           </div>
         </div>
 
