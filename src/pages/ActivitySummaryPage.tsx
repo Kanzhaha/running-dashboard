@@ -208,7 +208,7 @@ const LineMiniChart: React.FC<{
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-white text-lg font-semibold">{title}</h3>
-          <p className="text-slate-400 text-sm">Trend across session time</p>
+          <p className="text-slate-400 text-sm">Trend from dashboard-received samples</p>
         </div>
 
         <div className="text-right">
@@ -509,6 +509,7 @@ export const ActivitySummaryPage: React.FC = () => {
           <SummaryCard title="Peak Decoupling" value={`${summary.decouplingPeak.toFixed(2)} %`} icon={TrendingUp} accent="text-orange-400" />
           <SummaryCard title="Mode" value={summary.mode} icon={Navigation} />
           <SummaryCard title="Source" value={summary.source} icon={MapPin} />
+          <SummaryCard title="Received Samples" value={`${samples.length}`} icon={Activity} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -519,10 +520,13 @@ export const ActivitySummaryPage: React.FC = () => {
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
             <div className="text-slate-400 text-xs uppercase tracking-wider mb-2">
-              Valid / Total Samples
+              Valid / Received Samples
             </div>
             <div className="text-white text-3xl font-bold font-mono-nums">
               {validSampleCount} / {samples.length}
+            </div>
+            <div className="text-slate-500 text-xs mt-2">
+              Valid samples are calculated from dashboard-received session data.
             </div>
           </div>
         </div>

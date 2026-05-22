@@ -58,6 +58,13 @@ const DEFAULT_FATIGUE: FatigueStatus = {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const downsample = <T,>(arr: T[], maxPoints = 500): T[] => {
+  if (arr.length <= maxPoints) return arr;
+
+  const step = Math.ceil(arr.length / maxPoints);
+  return arr.filter((_, index) => index % step === 0);
+};
+
 const hasPayload = (value: unknown) =>
   value !== undefined && value !== null && value !== '';
 
@@ -236,6 +243,7 @@ export const Dashboard: React.FC = () => {
 
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [data, setData] = useState<SensorData[]>([]);
+  const allSamplesRef = useRef<SensorData[]>([]);
   const [latest, setLatest] = useState<SensorData | null>(null);
   const [fatigue, setFatigue] = useState<FatigueStatus>(DEFAULT_FATIGUE);
   const [duration, setDuration] = useState(0);
@@ -325,6 +333,10 @@ export const Dashboard: React.FC = () => {
     if (!user || !userProfile || isRunning) return;
 
     resetPendingRef.current = false;
+    allSamplesRef.current = [];
+    setData([]);
+    setLatest(null);
+    setDuration(0);
 
     const mode = userProfile.mode === 'indoor' ? 'INDOOR' : 'OUTDOOR';
     const source = userProfile.mode === 'indoor' ? 'Estimated' : 'Gps';
@@ -351,60 +363,43 @@ export const Dashboard: React.FC = () => {
   resetPendingRef.current = true;
   publish('wearable/config/command', 'RESET');
 
-  const samplesToSummarize = [...data];
+  const samplesToSummarize = [...allSamplesRef.current];
   const latestSample = samplesToSummarize[samplesToSummarize.length - 1];
 
-  const avgHr =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce((sum, item) => sum + item.heartRate, 0) /
-        samplesToSummarize.length
-      : 0;
+  const positiveAverage = (values: number[]) => {
+    const valid = values.filter((value) => Number.isFinite(value) && value > 0);
+    if (!valid.length) return 0;
 
-  const avgEi =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce(
-          (sum, item) => sum + (item.efficiencyIndex || 0),
-          0
-        ) / samplesToSummarize.length
-      : 0;
+    return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+    };
 
-  const avgDecoupling =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce(
-          (sum, item) => sum + (item.decoupling || 0),
-          0
-        ) / samplesToSummarize.length
-      : 0;
+  const finiteAverage = (values: number[]) => {
+    const valid = values.filter((value) => Number.isFinite(value));
+    if (!valid.length) return 0;
 
-  const avgPowerLocal =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce((sum, item) => sum + item.runningPower, 0) /
-        samplesToSummarize.length
-      : 0;
+    return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+  };
 
-  const avgSpeedLocal =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce((sum, item) => sum + item.speed, 0) /
-        samplesToSummarize.length
-      : 0;
-
-  const avgCadenceLocal =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce((sum, item) => sum + item.cadence, 0) /
-        samplesToSummarize.length
-      : 0;
-
-  const avgGctLocal =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce((sum, item) => sum + item.groundContactTime, 0) /
-        samplesToSummarize.length
-      : 0;
-
-  const avgVoLocal =
-    samplesToSummarize.length > 0
-      ? samplesToSummarize.reduce((sum, item) => sum + item.verticalOscillation, 0) /
-        samplesToSummarize.length
-      : 0;
+  const avgHr = positiveAverage(samplesToSummarize.map((item) => item.heartRate));
+  const avgEi = positiveAverage(
+    samplesToSummarize.map((item) => item.efficiencyIndex || 0)
+  );
+  const avgDecoupling = finiteAverage(
+    samplesToSummarize.map((item) => item.decoupling || 0)
+  );
+  const avgPowerLocal = positiveAverage(
+    samplesToSummarize.map((item) => item.runningPower)
+  );
+  const avgSpeedLocal = positiveAverage(samplesToSummarize.map((item) => item.speed));
+  const avgCadenceLocal = positiveAverage(
+    samplesToSummarize.map((item) => item.cadence)
+  );
+  const avgGctLocal = positiveAverage(
+    samplesToSummarize.map((item) => item.groundContactTime)
+  );
+  const avgVoLocal = positiveAverage(
+    samplesToSummarize.map((item) => item.verticalOscillation)
+  );
 
   const decouplingPeak =
     samplesToSummarize.length > 0
@@ -632,7 +627,19 @@ export const Dashboard: React.FC = () => {
     };
 
     setLatest(nextData);
-    setData((prev) => [...prev.slice(-300), nextData]);
+
+    allSamplesRef.current.push(nextData);
+
+    const validChartSamples = allSamplesRef.current.filter((sample) =>
+      Number.isFinite(sample.speed) &&
+      Number.isFinite(sample.runningPower) &&
+      Number.isFinite(sample.cadence) &&
+      sample.speed > 0 &&
+      sample.runningPower > 0 &&
+      sample.cadence > 0
+    );
+
+    setData(downsample(validChartSamples, 500));
     setFatigue(mapFatigueStatus(rawFatigueStatus, decoupling));
 
     if (user && currentSessionId) {
