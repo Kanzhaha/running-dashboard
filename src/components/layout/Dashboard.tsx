@@ -899,8 +899,6 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm text-slate-400">
-              <span className="inline-block w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span>
-              Target Zone: 240-260W
             </div>
             <div className="mt-4 h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div
