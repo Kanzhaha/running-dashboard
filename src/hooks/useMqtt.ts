@@ -3,13 +3,13 @@ import mqtt, { MqttClient } from 'mqtt';
 
 const MQTT_URL =
   process.env.REACT_APP_MQTT_URL ||
-  'wss://broker.emqx.io:8084/mqtt';
+  'wss://952104b5fc6a4357b11be8b6431f907d.s1.eu.hivemq.cloud:8884/mqtt';
 
 const MQTT_USERNAME =
-  process.env.REACT_APP_MQTT_USERNAME || '';
+  process.env.REACT_APP_MQTT_USERNAME || 'issakanzha';
 
 const MQTT_PASSWORD =
-  process.env.REACT_APP_MQTT_PASSWORD || '';
+  process.env.REACT_APP_MQTT_PASSWORD || 'Test12345';
 
 const MQTT_TOPICS: string[] = [
   'wearable/config/status',
@@ -39,7 +39,6 @@ const MQTT_TOPICS: string[] = [
   'wearable/mode',
   'wearable/source',
   'wearable/gps_status',
-  'wearable/availability',
 ];
 
 export const useMqtt = () => {
@@ -49,12 +48,11 @@ export const useMqtt = () => {
 
   useEffect(() => {
     const client = mqtt.connect(MQTT_URL, {
-    clientId: `dashboard_${Math.random().toString(16).slice(2)}`,
-    username: MQTT_USERNAME || undefined,
-    password: MQTT_PASSWORD || undefined,
-    reconnectPeriod: 3000,
-    clean: true,
-  });
+      username: MQTT_USERNAME,
+      password: MQTT_PASSWORD,
+      reconnectPeriod: 3000,
+      clean: true,
+    });
 
     clientRef.current = client;
 
@@ -90,10 +88,7 @@ export const useMqtt = () => {
 
   const publish = (topic: string, payload: string) => {
     if (!clientRef.current || !isConnected) return;
-    clientRef.current.publish(topic, payload, {
-      qos: 0,
-      retain: false,
-    });
+    clientRef.current.publish(topic, payload);
   };
 
   return { isConnected, messages, publish };
