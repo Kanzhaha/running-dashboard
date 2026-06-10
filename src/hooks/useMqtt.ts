@@ -3,7 +3,7 @@ import mqtt, { MqttClient } from 'mqtt';
 
 const MQTT_URL =
   process.env.REACT_APP_MQTT_URL ||
-  'ws://broker.emqx.io:8083/mqtt';
+  'wss://broker.emqx.io:8084/mqtt';
 
 const MQTT_USERNAME =
   process.env.REACT_APP_MQTT_USERNAME || '';
