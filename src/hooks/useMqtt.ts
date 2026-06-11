@@ -3,13 +3,13 @@ import mqtt, { MqttClient } from 'mqtt';
 
 const MQTT_URL =
   process.env.REACT_APP_MQTT_URL ||
-  'wss://952104b5fc6a4357b11be8b6431f907d.s1.eu.hivemq.cloud:8884/mqtt';
+  'wss://102971540e144709a2789a97b0029082.s1.eu.hivemq.cloud:8884/mqtt';
 
 const MQTT_USERNAME =
-  process.env.REACT_APP_MQTT_USERNAME || 'issakanzha';
+  process.env.REACT_APP_MQTT_USERNAME || 'KanzRUN';
 
 const MQTT_PASSWORD =
-  process.env.REACT_APP_MQTT_PASSWORD || 'Test12345';
+  process.env.REACT_APP_MQTT_PASSWORD || 'Running123';
 
 const MQTT_TOPICS: string[] = [
   'wearable/telemetry',
